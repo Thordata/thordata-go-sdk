@@ -40,10 +40,12 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	if strings.TrimSpace(opt.Query) == "" {
 		return nil, errors.New("query is required")
 	}
+
 	engine := strings.ToLower(strings.TrimSpace(opt.Engine))
 	if engine == "" {
 		engine = "google"
 	}
+
 	out := strings.ToLower(strings.TrimSpace(opt.OutputFormat))
 	if out == "" {
 		out = "json"
@@ -53,7 +55,6 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 		"engine": engine,
 		"json":   "1",
 	}
-
 	if out == "html" {
 		payload["json"] = "0"
 	}
@@ -65,10 +66,10 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	}
 
 	if opt.Num > 0 {
-		payload["num"] = itoa(opt.Num)
+		payload["num"] = strconv.Itoa(opt.Num)
 	}
 	if opt.Start > 0 {
-		payload["start"] = itoa(opt.Start)
+		payload["start"] = strconv.Itoa(opt.Start)
 	}
 	if opt.Country != "" {
 		payload["gl"] = strings.ToLower(opt.Country)
@@ -76,6 +77,7 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	if opt.Language != "" {
 		payload["hl"] = strings.ToLower(opt.Language)
 	}
+
 	if opt.SearchType != "" {
 		st := strings.ToLower(opt.SearchType)
 		if v, ok := tbmMap[st]; ok {
@@ -84,9 +86,11 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 			payload["tbm"] = st
 		}
 	}
+
 	if opt.Device != "" {
 		payload["device"] = strings.ToLower(opt.Device)
 	}
+
 	if opt.RenderJS != nil {
 		if *opt.RenderJS {
 			payload["render_js"] = "True"
@@ -94,6 +98,7 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 			payload["render_js"] = "False"
 		}
 	}
+
 	if opt.NoCache != nil {
 		if *opt.NoCache {
 			payload["no_cache"] = "True"
@@ -107,7 +112,7 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	}
 
 	body := ToFormBody(payload)
-	req, err := http.NewRequestWithContext(ctx, "POST", c.serpURL, bytes.NewBufferString(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.serpURL, bytes.NewBufferString(body))
 	if err != nil {
 		return nil, err
 	}
@@ -124,19 +129,23 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 
 	raw, _ := io.ReadAll(res.Body)
 
+	// HTML mode keeps a stable return shape
 	if out == "html" {
 		return map[string]any{"html": string(raw)}, nil
 	}
 
 	parsed, _ := SafeParseJSON(raw)
+
+	// API-level code check
 	if obj, ok := parsed.(map[string]any); ok {
-		if codeVal, ok2 := obj["code"]; ok2 {
-			if f, ok3 := codeVal.(float64); ok3 && int(f) != 200 {
+		if cv, ok2 := obj["code"]; ok2 {
+			if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
 				return nil, RaiseForCode("SERP API error", obj, res.StatusCode)
 			}
 		}
 	}
 
+	// HTTP-level error fallback
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		if obj, ok := parsed.(map[string]any); ok {
 			return nil, RaiseForCode("SERP HTTP error", obj, res.StatusCode)
@@ -145,8 +154,4 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	}
 
 	return parsed, nil
-}
-
-func itoa(n int) string {
-	return strconv.Itoa(n)
 }

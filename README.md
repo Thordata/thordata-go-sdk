@@ -77,3 +77,8 @@ This repository includes a git submodule (`sdk-spec`) for cross-SDK parity check
 git submodule update --init --recursive
 go test ./...
 ```
+
+### Windows note
+
+If `go test` fails with `Access is denied` when executing test binaries, your antivirus may be blocking temporary executables.
+Try disabling the antivirus for the repository, or set `GOTMPDIR` to a project-local directory.

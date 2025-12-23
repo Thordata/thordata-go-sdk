@@ -1,0 +1,3 @@
+[submodule "sdk-spec"]
+	path = sdk-spec
+	url = https://github.com/Thordata/thordata-sdk-spec.git

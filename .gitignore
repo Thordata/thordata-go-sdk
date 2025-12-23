@@ -1,0 +1,22 @@
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go tool/cache (optional)
+.gocache/
+.gotmp/
+
+# IDE
+.vscode/
+.idea/
+*.iml

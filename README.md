@@ -78,6 +78,28 @@ git submodule update --init --recursive
 go test ./...
 ```
 
+## Git submodules
+
+This repository uses a git submodule (`sdk-spec`) for cross-SDK parity checks.
+
+After cloning:
+
+```bash
+git submodule update --init --recursive
+```
+
+## Examples
+
+1) Copy `.env.example` to `.env` and fill in your credentials.
+2) Run examples from the repository root.
+
+Go:
+
+```bash
+go run ./examples/serp_basic
+go run ./examples/universal_basic
+```
+
 ### Windows note
 
 If `go test` fails with `Access is denied` when executing test binaries, your antivirus may be blocking temporary executables.

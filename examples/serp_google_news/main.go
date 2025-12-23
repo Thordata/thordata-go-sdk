@@ -1,0 +1,46 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/Thordata/thordata-go-sdk/examples/internal/env"
+	"github.com/Thordata/thordata-go-sdk/thordata"
+)
+
+func main() {
+	_ = env.LoadDotEnv(".env")
+
+	token := os.Getenv("THORDATA_SCRAPER_TOKEN")
+	if token == "" {
+		fmt.Println("Missing THORDATA_SCRAPER_TOKEN. Set env var and re-run.")
+		os.Exit(1)
+	}
+
+	client, err := thordata.NewClient(thordata.Config{
+		ScraperToken: token,
+		Timeout:      60 * time.Second,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	out, err := client.SerpSearch(context.Background(), thordata.SerpOptions{
+		Query:        "AI regulation",
+		Engine:       "google_news",
+		Country:      "us",
+		OutputFormat: "json",
+		Extra: map[string]string{
+			"so": "1", // 0=relevance, 1=date (if supported)
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	b, _ := json.MarshalIndent(out, "", "  ")
+	fmt.Println(string(b))
+}

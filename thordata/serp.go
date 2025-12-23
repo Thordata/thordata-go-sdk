@@ -41,7 +41,7 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 		return nil, errors.New("query is required")
 	}
 
-	engine := strings.ToLower(strings.TrimSpace(opt.Engine))
+	engine := normalizeEngine(strings.ToLower(strings.TrimSpace(opt.Engine)))
 	if engine == "" {
 		engine = "google"
 	}
@@ -154,4 +154,19 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	}
 
 	return parsed, nil
+}
+
+func normalizeEngine(engine string) string {
+	switch strings.ToLower(strings.TrimSpace(engine)) {
+	case "google_search":
+		return "google"
+	case "bing_search":
+		return "bing"
+	case "yandex_search":
+		return "yandex"
+	case "duckduckgo_search":
+		return "duckduckgo"
+	default:
+		return strings.ToLower(strings.TrimSpace(engine))
+	}
 }

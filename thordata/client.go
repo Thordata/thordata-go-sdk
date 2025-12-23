@@ -9,10 +9,10 @@ import (
 )
 
 type BaseURLs struct {
-	ScraperAPIBaseURL      string
-	UniversalAPIBaseURL    string
-	WebScraperAPIBaseURL   string
-	LocationsBaseURL       string
+	ScraperAPIBaseURL    string
+	UniversalAPIBaseURL  string
+	WebScraperAPIBaseURL string
+	LocationsBaseURL     string
 }
 
 type Config struct {
@@ -27,16 +27,16 @@ type Config struct {
 }
 
 type Client struct {
-	cfg     Config
-	http    *http.Client
-	base    BaseURLs
+	cfg  Config
+	http *http.Client
+	base BaseURLs
 
-	serpURL           string
-	scraperBuilderURL string
-	universalURL      string
-	scraperStatusURL  string
+	serpURL            string
+	scraperBuilderURL  string
+	universalURL       string
+	scraperStatusURL   string
 	scraperDownloadURL string
-	locationsBaseURL  string
+	locationsBaseURL   string
 }
 
 func NewClient(cfg Config) (*Client, error) {

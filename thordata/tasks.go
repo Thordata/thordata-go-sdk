@@ -228,3 +228,67 @@ func boolToLower(v bool) string {
 	}
 	return "false"
 }
+
+func (c *Client) CreateVideoTask(ctx context.Context, opt VideoTaskOptions) (string, error) {
+	if opt.FileName == "" || opt.SpiderID == "" || opt.SpiderName == "" {
+		return "", errors.New("fileName, spiderId, and spiderName are required")
+	}
+	if opt.Parameters == nil {
+		return "", errors.New("parameters is required")
+	}
+
+	paramsArr := []map[string]any{opt.Parameters}
+	paramsJSON, _ := json.Marshal(paramsArr)
+
+	settingsJSON, _ := json.Marshal(opt.CommonSettings)
+
+	payload := map[string]string{
+		"file_name":         opt.FileName,
+		"spider_id":         opt.SpiderID,
+		"spider_name":       opt.SpiderName,
+		"spider_parameters": string(paramsJSON),
+		"spider_errors":     boolToLower(opt.IncludeErrors),
+		"common_settings":   string(settingsJSON),
+	}
+
+	body := ToFormBody(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.videoBuilderURL, bytes.NewBufferString(body))
+	if err != nil {
+		return "", err
+	}
+
+	for k, v := range BuildBuilderHeaders(c.cfg.ScraperToken, c.cfg.PublicToken, c.cfg.PublicKey) {
+		req.Header.Set(k, v)
+	}
+	req.Header.Set("User-Agent", c.cfg.UserAgent)
+
+	res, err := c.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	raw, _ := io.ReadAll(res.Body)
+	parsed, _ := SafeParseJSON(raw)
+
+	obj, ok := parsed.(map[string]any)
+	if !ok {
+		return "", errors.New("invalid response from Video Builder API")
+	}
+
+	if cv, ok2 := obj["code"]; ok2 {
+		if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
+			return "", RaiseForCode("Video task creation failed", obj, res.StatusCode)
+		}
+	}
+
+	dataObj, _ := obj["data"].(map[string]any)
+	taskID := ""
+	if dataObj != nil {
+		taskID = toString(dataObj["task_id"])
+	}
+	if strings.TrimSpace(taskID) == "" {
+		return "", errors.New("task_id missing in response")
+	}
+	return taskID, nil
+}

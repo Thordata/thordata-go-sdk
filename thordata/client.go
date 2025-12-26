@@ -37,6 +37,7 @@ type Client struct {
 	scraperStatusURL   string
 	scraperDownloadURL string
 	locationsBaseURL   string
+	videoBuilderURL    string
 }
 
 func NewClient(cfg Config) (*Client, error) {
@@ -59,6 +60,7 @@ func NewClient(cfg Config) (*Client, error) {
 
 	c.serpURL = strings.TrimRight(base.ScraperAPIBaseURL, "/") + "/request"
 	c.scraperBuilderURL = strings.TrimRight(base.ScraperAPIBaseURL, "/") + "/builder"
+	c.videoBuilderURL = strings.TrimRight(base.ScraperAPIBaseURL, "/") + "/video_builder"
 	c.universalURL = strings.TrimRight(base.UniversalAPIBaseURL, "/") + "/request"
 	c.scraperStatusURL = strings.TrimRight(base.WebScraperAPIBaseURL, "/") + "/tasks-status"
 	c.scraperDownloadURL = strings.TrimRight(base.WebScraperAPIBaseURL, "/") + "/tasks-download"

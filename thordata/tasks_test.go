@@ -12,8 +12,13 @@ func TestTasks_Offline(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/builder":
+			// Check for all headers
 			if r.Header.Get("Authorization") == "" {
 				t.Fatalf("missing Authorization header")
+			}
+			// Check for token/key if provided in config
+			if r.Header.Get("token") != "pub" || r.Header.Get("key") != "key" {
+				t.Fatalf("missing public token/key in builder request")
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(`{"code":200,"data":{"task_id":"t1"}}`))

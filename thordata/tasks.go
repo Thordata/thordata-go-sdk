@@ -49,7 +49,8 @@ func (c *Client) CreateScraperTask(ctx context.Context, opt ScraperTaskOptions) 
 	if err != nil {
 		return "", err
 	}
-	for k, v := range BuildAuthHeaders(c.cfg.ScraperToken) {
+	// Use BuildBuilderHeaders instead of BuildAuthHeaders
+	for k, v := range BuildBuilderHeaders(c.cfg.ScraperToken, c.cfg.PublicToken, c.cfg.PublicKey) {
 		req.Header.Set(k, v)
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)

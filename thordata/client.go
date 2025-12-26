@@ -71,8 +71,8 @@ func resolveBaseURLs(override *BaseURLs) BaseURLs {
 	def := BaseURLs{
 		ScraperAPIBaseURL:    getenvDefault("THORDATA_SCRAPERAPI_BASE_URL", "https://scraperapi.thordata.com"),
 		UniversalAPIBaseURL:  getenvDefault("THORDATA_UNIVERSALAPI_BASE_URL", "https://universalapi.thordata.com"),
-		WebScraperAPIBaseURL: getenvDefault("THORDATA_WEB_SCRAPER_API_BASE_URL", "https://api.thordata.com/api/web-scraper-api"),
-		LocationsBaseURL:     getenvDefault("THORDATA_LOCATIONS_BASE_URL", "https://api.thordata.com/api/locations"),
+		WebScraperAPIBaseURL: getenvDefault("THORDATA_WEB_SCRAPER_API_BASE_URL", "https://openapi.thordata.com/api/web-scraper-api"),
+		LocationsBaseURL:     getenvDefault("THORDATA_LOCATIONS_BASE_URL", "https://openapi.thordata.com/api/locations"),
 	}
 	if override == nil {
 		return def

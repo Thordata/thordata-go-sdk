@@ -27,6 +27,19 @@ func BuildPublicHeaders(publicToken, publicKey string) map[string]string {
 	}
 }
 
+func BuildBuilderHeaders(scraperToken, publicToken, publicKey string) map[string]string {
+	// Builder requires token + key + Authorization Bearer
+	headers := map[string]string{
+		"Authorization": "Bearer " + scraperToken,
+		"Content-Type":  "application/x-www-form-urlencoded",
+	}
+	if publicToken != "" && publicKey != "" {
+		headers["token"] = publicToken
+		headers["key"] = publicKey
+	}
+	return headers
+}
+
 func ToFormBody(payload map[string]string) string {
 	v := url.Values{}
 	for k, val := range payload {

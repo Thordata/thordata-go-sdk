@@ -1,11 +1,6 @@
 # thordata-go-sdk
 
-Official Go SDK for Thordata APIs:
-- Proxy Network (via standard HTTP proxy configuration)
-- SERP API
-- Universal / Web Unlocker API
-- Web Scraper API (task-based)
-- Location API
+Official Go SDK for Thordata APIs.
 
 ## Installation
 
@@ -13,17 +8,12 @@ Official Go SDK for Thordata APIs:
 go get github.com/Thordata/thordata-go-sdk
 ```
 
-## Environment Variables
+## Configuration
 
-```env
-THORDATA_SCRAPER_TOKEN=...
-THORDATA_PUBLIC_TOKEN=...
-THORDATA_PUBLIC_KEY=...
-
-THORDATA_SCRAPERAPI_BASE_URL=https://scraperapi.thordata.com
-THORDATA_UNIVERSALAPI_BASE_URL=https://universalapi.thordata.com
-THORDATA_WEB_SCRAPER_API_BASE_URL=https://api.thordata.com/api/web-scraper-api
-THORDATA_LOCATIONS_BASE_URL=https://api.thordata.com/api/locations
+```bash
+export THORDATA_SCRAPER_TOKEN=your_token
+export THORDATA_PUBLIC_TOKEN=your_public_token
+export THORDATA_PUBLIC_KEY=your_public_key
 ```
 
 ## Quick Start
@@ -32,75 +22,66 @@ THORDATA_LOCATIONS_BASE_URL=https://api.thordata.com/api/locations
 package main
 
 import (
-  "context"
-  "fmt"
-  "os"
-  "time"
-
-  "github.com/Thordata/thordata-go-sdk/thordata"
+    "context"
+    "fmt"
+    "os"
+    "github.com/Thordata/thordata-go-sdk/thordata"
 )
 
 func main() {
-  cfg := thordata.Config{
-    ScraperToken: os.Getenv("THORDATA_SCRAPER_TOKEN"),
-    PublicToken:  os.Getenv("THORDATA_PUBLIC_TOKEN"),
-    PublicKey:    os.Getenv("THORDATA_PUBLIC_KEY"),
-    Timeout:      30 * time.Second,
-  }
+    client, _ := thordata.NewClient(thordata.Config{
+        ScraperToken: os.Getenv("THORDATA_SCRAPER_TOKEN"),
+        PublicToken:  os.Getenv("THORDATA_PUBLIC_TOKEN"),
+        PublicKey:    os.Getenv("THORDATA_PUBLIC_KEY"),
+    })
 
-  client, err := thordata.NewClient(cfg)
-  if err != nil {
-    panic(err)
-  }
-
-  ctx := context.Background()
-  data, err := client.SerpSearch(ctx, thordata.SerpOptions{
-    Query:  "pizza",
-    Engine: "google",
-    Country: "us",
-    SearchType: "news",
-    OutputFormat: "json",
-  })
-  if err != nil {
-    panic(err)
-  }
-
-  fmt.Printf("%T\n", data)
+    // SERP Search
+    res, _ := client.SerpSearch(context.Background(), thordata.SerpOptions{
+        Query:  "golang",
+        Engine: "google",
+    })
+    fmt.Println(res)
 }
 ```
 
-## Development
+## Features
 
-This repository includes a git submodule (`sdk-spec`) for cross-SDK parity checks.
+### Web Scraper API
 
-```bash
-git submodule update --init --recursive
-go test ./...
+```go
+// Video Task
+taskId, _ := client.CreateVideoTask(ctx, thordata.VideoTaskOptions{
+    FileName: "video",
+    SpiderID: "youtube_video_by-url",
+    SpiderName: "youtube.com",
+    Parameters: map[string]any{"url": "..."},
+    CommonSettings: thordata.CommonSettings{Resolution: "1080p"},
+})
+
+// Wait & Result
+status, _ := client.WaitForTask(ctx, taskId, 5*time.Second, 10*time.Minute)
+url, _ := client.GetTaskResult(ctx, taskId, "json")
 ```
 
-## Git submodules
+### Account Management
 
-This repository uses a git submodule (`sdk-spec`) for cross-SDK parity checks.
+```go
+// Usage
+stats, _ := client.GetUsageStatistics(ctx, "2024-01-01", "2024-01-31")
 
-After cloning:
+// Proxy Users
+users, _ := client.ListProxyUsers(ctx, 1)
 
-```bash
-git submodule update --init --recursive
+// Whitelist
+client.AddWhitelistIP(ctx, "1.2.3.4", 1)
 ```
 
-## Examples
+### Public API NEW
 
-1) Copy `.env.example` to `.env` and fill in your credentials.
-2) Run examples from the repository root.
+```go
+// Residential Balance
+balance, _ := client.GetResidentialBalance(ctx)
 
-Go:
-
-```bash
-go run ./examples/serp_basic
-go run ./examples/universal_basic
+// ISP Regions
+regions, _ := client.GetIspRegions(ctx)
 ```
-
-### Windows note
-
-If `go test` fails with `Access is denied` when executing test binaries, your antivirus may be blocking temporary executables.
-Try disabling the antivirus for the repository, or set `GOTMPDIR` to a project-local directory.

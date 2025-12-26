@@ -40,6 +40,14 @@ func BuildBuilderHeaders(scraperToken, publicToken, publicKey string) map[string
 	return headers
 }
 
+func BuildSignHeaders(sign, apiKey string) map[string]string {
+	return map[string]string{
+		"sign":         sign,
+		"apiKey":       apiKey,
+		"Content-Type": "application/x-www-form-urlencoded",
+	}
+}
+
 func ToFormBody(payload map[string]string) string {
 	v := url.Values{}
 	for k, val := range payload {

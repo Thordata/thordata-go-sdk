@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/Thordata/thordata-go-sdk/examples/internal/env"
@@ -17,8 +16,6 @@ func main() {
 	scraper := os.Getenv("THORDATA_SCRAPER_TOKEN")
 	pub := os.Getenv("THORDATA_PUBLIC_TOKEN")
 	key := os.Getenv("THORDATA_PUBLIC_KEY")
-	sign := os.Getenv("THORDATA_SIGN")
-	apiKey := os.Getenv("THORDATA_API_KEY")
 
 	if scraper == "" {
 		fmt.Println("❌ Error: THORDATA_SCRAPER_TOKEN is required")
@@ -33,8 +30,6 @@ func main() {
 		ScraperToken: scraper,
 		PublicToken:  pub,
 		PublicKey:    key,
-		Sign:         sign,
-		ApiKey:       apiKey,
 		Timeout:      60 * time.Second,
 	})
 	if err != nil {
@@ -99,33 +94,6 @@ func main() {
 			s := servers[0].(map[string]any)
 			fmt.Printf("   Server 1: %v:%v\n", s["ip"], s["port"])
 		}
-	}
-
-	// 5. API NEW - Balance
-	fmt.Println("\n--- Testing: API NEW - Balance ---")
-	balNew, err := client.GetResidentialBalance(ctx)
-	if err != nil {
-		if strings.Contains(err.Error(), "Sign and ApiKey") {
-			fmt.Println("⚠️ Skipped (requires Sign/ApiKey)")
-		} else {
-			fmt.Printf("❌ Failed: %v\n", err)
-		}
-	} else {
-		b := getFloat(balNew, "balance")
-		fmt.Printf("✅ Balance: %.2f GB\n", b/(1024*1024*1024))
-	}
-
-	// 6. API NEW - ISP Regions
-	fmt.Println("\n--- Testing: API NEW - ISP Regions ---")
-	regions, err := client.GetIspRegions(ctx)
-	if err != nil {
-		if strings.Contains(err.Error(), "Sign and ApiKey") {
-			fmt.Println("⚠️ Skipped (requires Sign/ApiKey)")
-		} else {
-			fmt.Printf("❌ Failed: %v\n", err)
-		}
-	} else {
-		fmt.Printf("✅ Regions: %d\n", len(regions))
 	}
 }
 

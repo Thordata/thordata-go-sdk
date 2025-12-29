@@ -20,9 +20,6 @@ type Config struct {
 	PublicToken  string
 	PublicKey    string
 
-	Sign   string
-	ApiKey string
-
 	Timeout   time.Duration
 	UserAgent string
 
@@ -49,9 +46,6 @@ type Client struct {
 	proxyListURL       string
 	proxyExpirationURL string
 	taskListURL        string
-
-	// API NEW URLs
-	gatewayBaseURL string
 }
 
 func NewClient(cfg Config) (*Client, error) {
@@ -63,19 +57,6 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 	if cfg.UserAgent == "" {
 		cfg.UserAgent = BuildUserAgent("0.0.0")
-	}
-	// Auto-fallback for Sign/ApiKey if not provided
-	if cfg.Sign == "" {
-		cfg.Sign = os.Getenv("THORDATA_SIGN")
-		if cfg.Sign == "" {
-			cfg.Sign = cfg.PublicToken
-		}
-	}
-	if cfg.ApiKey == "" {
-		cfg.ApiKey = os.Getenv("THORDATA_API_KEY")
-		if cfg.ApiKey == "" {
-			cfg.ApiKey = cfg.PublicKey
-		}
 	}
 
 	base := resolveBaseURLs(cfg.BaseURLs)
@@ -101,9 +82,6 @@ func NewClient(cfg Config) (*Client, error) {
 	c.proxyListURL = "https://api.thordata.com/api/proxy/proxy-list"
 	c.proxyExpirationURL = apiBase + "/proxy/expiration-time"
 	c.taskListURL = strings.TrimRight(base.WebScraperAPIBaseURL, "/") + "/tasks-list"
-
-	// API NEW endpoints
-	c.gatewayBaseURL = getenvDefault("THORDATA_GATEWAY_BASE_URL", "https://api.thordata.com/api/gateway")
 
 	return c, nil
 }

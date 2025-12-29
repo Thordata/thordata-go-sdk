@@ -75,13 +75,3 @@ users, _ := client.ListProxyUsers(ctx, 1)
 // Whitelist
 client.AddWhitelistIP(ctx, "1.2.3.4", 1)
 ```
-
-### Public API NEW
-
-```go
-// Residential Balance
-balance, _ := client.GetResidentialBalance(ctx)
-
-// ISP Regions
-regions, _ := client.GetIspRegions(ctx)
-```

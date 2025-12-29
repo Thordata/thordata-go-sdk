@@ -69,3 +69,25 @@ func TestSpecSerpMapping(t *testing.T) {
 		t.Fatalf("expected news -> nws, got %v", tbms["news"])
 	}
 }
+
+func TestSpecNoPublicApiNew(t *testing.T) {
+	spec := loadSpec(t)
+
+	if _, ok := spec["publicApiNew"]; ok {
+		t.Fatalf("spec must not include publicApiNew (removed in v1.2.0)")
+	}
+
+	auth, ok := spec["auth"].(map[string]any)
+	if !ok {
+		t.Fatalf("spec.auth missing or invalid")
+	}
+	creds, ok := auth["credentials"].(map[string]any)
+	if ok {
+		if _, ok := creds["sign"]; ok {
+			t.Fatalf("spec.auth.credentials must not include sign (removed in v1.2.0)")
+		}
+		if _, ok := creds["apiKey"]; ok {
+			t.Fatalf("spec.auth.credentials must not include apiKey (removed in v1.2.0)")
+		}
+	}
+}

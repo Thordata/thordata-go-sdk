@@ -1,3 +1,3 @@
 module github.com/Thordata/thordata-go-sdk
 
-go 1.25.5
+go 1.22

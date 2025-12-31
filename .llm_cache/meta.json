@@ -1,0 +1,14 @@
+{
+  "root": "D:\\thordata_work\\thordata-go-sdk",
+  "generated_at": "2025-12-31T10:05:37",
+  "fingerprint": "a55a719ff30a0b1e7633e250fdd3ae55d01cd069",
+  "chunk_bytes": 600000,
+  "max_single_file_bytes": 3000000,
+  "ignore_lock_files": true,
+  "bundle_count": 1,
+  "bundle_files": [
+    "bundle_0001.txt"
+  ],
+  "files_included": 49,
+  "build_seconds": 0.029
+}

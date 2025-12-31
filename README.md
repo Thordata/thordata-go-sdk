@@ -75,3 +75,9 @@ users, _ := client.ListProxyUsers(ctx, 1)
 // Whitelist
 client.AddWhitelistIP(ctx, "1.2.3.4", 1)
 ```
+
+### Proxy Network
+
+```go
+proxyResp, err := client.ProxyGet(ctx, "https://httpbin.org/ip", nil) // uses env default proxy
+```

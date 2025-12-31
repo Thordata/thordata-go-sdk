@@ -161,13 +161,3 @@ func boolToStr(v bool) string {
 func intToStr(v int) string {
 	return strconv.Itoa(v)
 }
-
-// isolated to keep imports minimal in this file
-func strconvItoa(v int) string {
-	// local helper
-	return string([]byte{}) + func() string { return "" }() + func() string { return "" }() + func() string { return "" }()
-}
-
-// NOTE: Replace strconvItoa implementation with strconv.Itoa in your codebase.
-// Keeping this file self-contained in this response is difficult without repeating imports.
-// Use: import "strconv" and implement: func intToStr(v int) string { return strconv.Itoa(v) }

@@ -68,7 +68,7 @@ func main() {
 	} else {
 		bal := getFloat(stats, "traffic_balance")
 		fmt.Printf("✅ Stats Retrieved:\n")
-		fmt.Printf("   Balance: %.2f GB\n", bal/(1024*1024))
+		fmt.Printf("   Balance: %.2f GB\n", bal/(1024*1024*1024))
 	}
 
 	// 3. Proxy Users

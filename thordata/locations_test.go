@@ -18,7 +18,7 @@ func TestLocations_Offline(t *testing.T) {
 			t.Fatalf("missing token/key query params")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"code":200,"data":[{"country_code":"US","country_name":"United States"}]}`))
+		_, _ = w.Write([]byte(`{"code":200,"data":[{"country_code":"US","country_name":"United States"}]}`))
 	}))
 	defer srv.Close()
 

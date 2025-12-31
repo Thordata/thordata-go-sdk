@@ -21,16 +21,16 @@ func TestTasks_Offline(t *testing.T) {
 				t.Fatalf("missing public token/key in builder request")
 			}
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"code":200,"data":{"task_id":"t1"}}`))
+			_, _ = w.Write([]byte(`{"code":200,"data":{"task_id":"t1"}}`))
 		case "/tasks-status":
 			if r.Header.Get("token") != "pub" || r.Header.Get("key") != "key" {
 				t.Fatalf("missing public headers")
 			}
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"code":200,"data":[{"task_id":"t1","status":"ready"}]}`))
+			_, _ = w.Write([]byte(`{"code":200,"data":[{"task_id":"t1","status":"ready"}]}`))
 		case "/tasks-download":
 			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(`{"code":200,"data":{"download":"https://example.com/file.json"}}`))
+			_, _ = w.Write([]byte(`{"code":200,"data":{"download":"https://example.com/file.json"}}`))
 		default:
 			http.NotFound(w, r)
 		}

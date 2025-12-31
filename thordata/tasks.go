@@ -59,7 +59,7 @@ func (c *Client) CreateScraperTask(ctx context.Context, opt ScraperTaskOptions) 
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	raw, _ := io.ReadAll(res.Body)
 	parsed, _ := SafeParseJSON(raw)
@@ -110,7 +110,7 @@ func (c *Client) GetTaskStatus(ctx context.Context, taskID string) (string, erro
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	raw, _ := io.ReadAll(res.Body)
 	parsed, _ := SafeParseJSON(raw)
@@ -173,7 +173,7 @@ func (c *Client) GetTaskResult(ctx context.Context, taskID string, fileType stri
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	raw, _ := io.ReadAll(res.Body)
 	parsed, _ := SafeParseJSON(raw)
@@ -266,7 +266,7 @@ func (c *Client) CreateVideoTask(ctx context.Context, opt VideoTaskOptions) (str
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	raw, _ := io.ReadAll(res.Body)
 	parsed, _ := SafeParseJSON(raw)

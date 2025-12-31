@@ -28,7 +28,7 @@ func TestUniversalScrapeHTML_Offline(t *testing.T) {
 		gotBody = vals
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"code":200,"html":"<h1>Hello</h1>"}`))
+		_, _ = w.Write([]byte(`{"code":200,"html":"<h1>Hello</h1>"}`))
 	}))
 	defer srv.Close()
 

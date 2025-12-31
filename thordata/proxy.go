@@ -307,9 +307,9 @@ func (c *Client) ProxyRequest(
 
 	if proxy == nil {
 		return nil, errors.New(
-			"proxy credentials are missing. " +
+			"proxy credentials are missing" +
 				"Set THORDATA_RESIDENTIAL_USERNAME/THORDATA_RESIDENTIAL_PASSWORD (or DATACENTER/MOBILE) " +
-				"and THORDATA_PROXY_HOST/PORT/PROTOCOL from Dashboard endpoint generator.",
+				"and THORDATA_PROXY_HOST/PORT/PROTOCOL from Dashboard endpoint generator",
 		)
 	}
 

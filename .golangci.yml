@@ -6,7 +6,7 @@ run:
   relative-path-mode: gomod
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - govet
     - staticcheck

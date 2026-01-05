@@ -1,22 +1,33 @@
-# thordata-go-sdk
+# Thordata Go SDK
 
-Official Go SDK for Thordata APIs.
+<div align="center">
 
-## Installation
+**Official Go Client for Thordata APIs**
+
+*Proxy Network • SERP API • Web Unlocker • Web Scraper API*
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/Thordata/thordata-go-sdk.svg)](https://pkg.go.dev/github.com/Thordata/thordata-go-sdk)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+</div>
+
+---
+
+## 📦 Installation
 
 ```bash
 go get github.com/Thordata/thordata-go-sdk
 ```
 
-## Configuration
+## 🔐 Configuration
 
 ```bash
-export THORDATA_SCRAPER_TOKEN=your_token
-export THORDATA_PUBLIC_TOKEN=your_public_token
-export THORDATA_PUBLIC_KEY=your_public_key
+export THORDATA_SCRAPER_TOKEN="your_token"
+export THORDATA_PUBLIC_TOKEN="public_token"
+export THORDATA_PUBLIC_KEY="public_key"
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ```go
 package main
@@ -31,8 +42,6 @@ import (
 func main() {
     client, _ := thordata.NewClient(thordata.Config{
         ScraperToken: os.Getenv("THORDATA_SCRAPER_TOKEN"),
-        PublicToken:  os.Getenv("THORDATA_PUBLIC_TOKEN"),
-        PublicKey:    os.Getenv("THORDATA_PUBLIC_KEY"),
     })
 
     // SERP Search
@@ -44,40 +53,103 @@ func main() {
 }
 ```
 
-## Features
+## 📚 Core Features
 
-### Web Scraper API
+### 🌐 Proxy Network
 
 ```go
-// Video Task
-taskId, _ := client.CreateVideoTask(ctx, thordata.VideoTaskOptions{
-    FileName: "video",
-    SpiderID: "youtube_video_by-url",
-    SpiderName: "youtube.com",
-    Parameters: map[string]any{"url": "..."},
-    CommonSettings: thordata.CommonSettings{Resolution: "1080p"},
+// Use default proxy from env
+resp, err := client.ProxyGet(ctx, "https://httpbin.org/ip", nil)
+
+// Or custom configuration
+proxy := &thordata.ProxyConfig{
+    Username: "user",
+    Password: "pass",
+    Product:  thordata.ProxyResidential,
+    Country:  "us",
+    City:     "new_york",
+}
+resp, err := client.ProxyGet(ctx, "https://httpbin.org/ip", proxy)
+```
+
+### 🔍 SERP API
+
+```go
+opts := thordata.SerpOptions{
+    Query:        "pizza",
+    Engine:       "google_maps",
+    Country:      "us",
+    OutputFormat: "json",
+}
+result, err := client.SerpSearch(ctx, opts)
+```
+
+### 🔓 Universal Scraping API
+
+```go
+html, err := client.UniversalScrape(ctx, thordata.UniversalOptions{
+    URL:          "https://example.com",
+    JSRender:     true,
+    WaitFor:      ".content",
+    OutputFormat: "html",
+})
+```
+
+### 🕷️ Web Scraper API (Tasks)
+
+```go
+// 1. Create Task
+taskId, _ := client.CreateScraperTask(ctx, thordata.ScraperTaskOptions{
+    FileName:   "task1",
+    SpiderID:   "universal",
+    SpiderName: "universal",
+    Parameters: map[string]any{"url": "https://example.com"},
 })
 
-// Wait & Result
+// 2. Wait
 status, _ := client.WaitForTask(ctx, taskId, 5*time.Second, 10*time.Minute)
-url, _ := client.GetTaskResult(ctx, taskId, "json")
+
+// 3. Download
+if status == "ready" {
+    url, _ := client.GetTaskResult(ctx, taskId, "json")
+    fmt.Println(url)
+}
 ```
 
-### Account Management
+### 📹 Video/Audio Tasks
 
 ```go
-// Usage
+taskId, _ := client.CreateVideoTask(ctx, thordata.VideoTaskOptions{
+    FileName:   "video_{{VideoID}}",
+    SpiderID:   "youtube_video_by-url",
+    SpiderName: "youtube.com",
+    Parameters: map[string]any{"url": "..."},
+    CommonSettings: thordata.CommonSettings{
+        Resolution: "1080p",
+    },
+})
+```
+
+### 📊 Account Management
+
+```go
+// Usage Stats
 stats, _ := client.GetUsageStatistics(ctx, "2024-01-01", "2024-01-31")
 
-// Proxy Users
-users, _ := client.ListProxyUsers(ctx, 1)
-
-// Whitelist
-client.AddWhitelistIP(ctx, "1.2.3.4", 1)
+// Whitelist IP
+client.AddWhitelistIP(ctx, "1.2.3.4", 1) // 1=Residential
 ```
 
-### Proxy Network
+## ⚙️ Advanced Usage
+
+### Connection Management
+
+For high-throughput applications, ensure you close idle connections if you create many clients.
 
 ```go
-proxyResp, err := client.ProxyGet(ctx, "https://httpbin.org/ip", nil) // uses env default proxy
+client.CloseIdleConnections()
 ```
+
+## 📄 License
+
+MIT License

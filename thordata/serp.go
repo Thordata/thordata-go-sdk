@@ -125,7 +125,7 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = res.Body.Close() }()
+	defer res.Body.Close()
 
 	raw, _ := io.ReadAll(res.Body)
 

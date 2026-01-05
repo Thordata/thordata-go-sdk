@@ -86,7 +86,7 @@ func (c *Client) UniversalScrape(ctx context.Context, opt UniversalOptions) (any
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = res.Body.Close() }()
+	defer res.Body.Close()
 
 	raw, _ := io.ReadAll(res.Body)
 

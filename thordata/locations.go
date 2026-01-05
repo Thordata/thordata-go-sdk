@@ -69,7 +69,7 @@ func (c *Client) getLocations(ctx context.Context, endpoint string, params map[s
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = res.Body.Close() }()
+	defer res.Body.Close()
 
 	raw, _ := io.ReadAll(res.Body)
 	parsed, _ := SafeParseJSON(raw)

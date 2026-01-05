@@ -43,7 +43,7 @@ func (c *Client) executeRequest(req *http.Request) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = res.Body.Close() }()
+	defer res.Body.Close()
 
 	raw, _ := io.ReadAll(res.Body)
 	parsed, _ := SafeParseJSON(raw)
@@ -159,7 +159,7 @@ func (c *Client) ListProxyServers(ctx context.Context, proxyType int) ([]any, er
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = res.Body.Close() }()
+	defer res.Body.Close()
 
 	raw, _ := io.ReadAll(res.Body)
 	parsed, _ := SafeParseJSON(raw)

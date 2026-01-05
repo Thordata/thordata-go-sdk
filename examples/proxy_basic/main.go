@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer res.Body.Close()
+	defer resp.Body.Close()
 
 	b, _ := io.ReadAll(resp.Body)
 	fmt.Println("status:", resp.StatusCode)

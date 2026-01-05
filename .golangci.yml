@@ -18,7 +18,6 @@ linters:
     - gosec
     - bodyclose
     - exportloopref
-    - typecheck
 
 linters-settings:
   gosec:

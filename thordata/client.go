@@ -119,3 +119,9 @@ func getenvDefault(key, def string) string {
 	}
 	return v
 }
+
+// CloseIdleConnections closes any idle connections in the client's transport.
+// This is useful if you are creating many ephemeral clients.
+func (c *Client) CloseIdleConnections() {
+	c.http.CloseIdleConnections()
+}

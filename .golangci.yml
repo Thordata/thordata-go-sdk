@@ -1,15 +1,26 @@
+# thordata-go-sdk/.golangci.yml
 version: "2"
 
 run:
   timeout: 5m
   tests: true
-  relative-path-mode: gomod
+  allow-parallel-runners: true
 
 linters:
-  default: none
+  disable-all: true
   enable:
     - govet
     - staticcheck
     - ineffassign
     - unused
     - errcheck
+    - gosimple
+    - gosec
+    - bodyclose
+    - exportloopref
+    - typecheck
+
+linters-settings:
+  gosec:
+    excludes:
+      - G404

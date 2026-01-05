@@ -1,3 +1,4 @@
+// FILE: thordata/utils.go
 package thordata
 
 import (
@@ -8,8 +9,14 @@ import (
 	"strings"
 )
 
+// BuildUserAgent formats the UA as: thordata-go-sdk/{version} go/{go_ver} ({os}/{arch})
 func BuildUserAgent(version string) string {
-	return fmt.Sprintf("thordata-go-sdk/%s (go %s; %s/%s)", version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	return fmt.Sprintf("thordata-go-sdk/%s go/%s (%s/%s)",
+		version,
+		runtime.Version(),
+		runtime.GOOS,
+		runtime.GOARCH,
+	)
 }
 
 func BuildAuthHeaders(scraperToken string) map[string]string {

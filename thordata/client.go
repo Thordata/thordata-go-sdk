@@ -1,3 +1,4 @@
+// thordata/client.go
 package thordata
 
 import (

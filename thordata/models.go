@@ -1,5 +1,12 @@
-// thordata/models.go (新建)
+// thordata/models.go
 package thordata
+
+// Standard API Response wrapper
+type APIResponse[T any] struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data T      `json:"data"`
+}
 
 // CommonSettings for video/audio tasks
 type CommonSettings struct {

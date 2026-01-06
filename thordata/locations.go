@@ -3,27 +3,26 @@ package thordata
 import (
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 )
 
-func (c *Client) ListCountries(ctx context.Context, proxyType int) ([]any, error) {
-	return c.getLocations(ctx, "countries", map[string]string{
+func (c *Client) ListCountries(ctx context.Context, proxyType int) ([]Country, error) {
+	return getLocations[Country](c, ctx, "countries", map[string]string{
 		"proxy_type": strconv.Itoa(proxyType),
 	})
 }
 
-func (c *Client) ListStates(ctx context.Context, countryCode string, proxyType int) ([]any, error) {
-	return c.getLocations(ctx, "states", map[string]string{
+func (c *Client) ListStates(ctx context.Context, countryCode string, proxyType int) ([]State, error) {
+	return getLocations[State](c, ctx, "states", map[string]string{
 		"proxy_type":   strconv.Itoa(proxyType),
 		"country_code": strings.ToUpper(countryCode),
 	})
 }
 
-func (c *Client) ListCities(ctx context.Context, countryCode string, stateCode string, proxyType int) ([]any, error) {
+func (c *Client) ListCities(ctx context.Context, countryCode string, stateCode string, proxyType int) ([]City, error) {
 	params := map[string]string{
 		"proxy_type":   strconv.Itoa(proxyType),
 		"country_code": strings.ToUpper(countryCode),
@@ -31,19 +30,19 @@ func (c *Client) ListCities(ctx context.Context, countryCode string, stateCode s
 	if strings.TrimSpace(stateCode) != "" {
 		params["state_code"] = strings.ToLower(stateCode)
 	}
-	return c.getLocations(ctx, "cities", params)
+	return getLocations[City](c, ctx, "cities", params)
 }
 
-func (c *Client) ListASNs(ctx context.Context, countryCode string, proxyType int) ([]any, error) {
-	return c.getLocations(ctx, "asn", map[string]string{
+func (c *Client) ListASNs(ctx context.Context, countryCode string, proxyType int) ([]ASN, error) {
+	return getLocations[ASN](c, ctx, "asn", map[string]string{
 		"proxy_type":   strconv.Itoa(proxyType),
 		"country_code": strings.ToUpper(countryCode),
 	})
 }
 
-func (c *Client) getLocations(ctx context.Context, endpoint string, params map[string]string) ([]any, error) {
+func getLocations[T any](c *Client, ctx context.Context, endpoint string, params map[string]string) ([]T, error) {
 	if strings.TrimSpace(c.cfg.PublicToken) == "" || strings.TrimSpace(c.cfg.PublicKey) == "" {
-		return nil, errors.New("publicToken and publicKey are required for locations API")
+		return nil, errors.New("publicToken and publicKey are required")
 	}
 
 	u, err := url.Parse(c.locationsBaseURL + "/" + endpoint)
@@ -63,31 +62,16 @@ func (c *Client) getLocations(ctx context.Context, endpoint string, params map[s
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
-	res, err := c.http.Do(req)
+	// Wrapper: {"code": 200, "data": [...]} OR raw list [...]
+	// Locations API is a bit inconsistent. Let's try wrapped first.
+
+	// Strategy: Use execute with APIResponse[[]T]. If data is empty but no error, maybe it returned direct list?
+	// But according to spec/tests, it usually wraps in "data".
+
+	resp, err := execute[APIResponse[[]T]](c, req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-
-	raw, _ := io.ReadAll(res.Body)
-	parsed, _ := SafeParseJSON(raw)
-
-	// API may return {code,data} or a raw list; follow Python/JS behavior.
-	if obj, ok := parsed.(map[string]any); ok {
-		if cv, ok2 := obj["code"]; ok2 {
-			if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
-				return nil, RaiseForCode("Locations API error", obj, res.StatusCode)
-			}
-		}
-		if data, ok2 := obj["data"].([]any); ok2 {
-			return data, nil
-		}
-		return []any{}, nil
-	}
-	if arr, ok := parsed.([]any); ok {
-		return arr, nil
-	}
-	return []any{}, nil
+	return resp.Data, nil
 }

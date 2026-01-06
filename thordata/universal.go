@@ -3,10 +3,8 @@ package thordata
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,7 +24,8 @@ type UniversalOptions struct {
 	Extra          map[string]string
 }
 
-func (c *Client) UniversalScrape(ctx context.Context, opt UniversalOptions) (any, error) {
+// UniversalScrape returns *UniversalResponse
+func (c *Client) UniversalScrape(ctx context.Context, opt UniversalOptions) (*UniversalResponse, error) {
 	if strings.TrimSpace(opt.URL) == "" {
 		return nil, errors.New("url is required")
 	}
@@ -82,73 +81,12 @@ func (c *Client) UniversalScrape(ctx context.Context, opt UniversalOptions) (any
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
-	res, err := c.http.Do(req)
+	// Universal API returns fields directly in root (code, html, png)
+	res, err := execute[UniversalResponse](c, req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-
-	raw, _ := io.ReadAll(res.Body)
-
-	// Try JSON first
-	parsed, _ := SafeParseJSON(raw)
-	if obj, ok := parsed.(map[string]any); ok {
-		// API code check
-		if cv, ok2 := obj["code"]; ok2 {
-			if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
-				return nil, RaiseForCode("Universal API error", obj, res.StatusCode)
-			}
-		}
-
-		// Extract html
-		if hv, ok2 := obj["html"]; ok2 {
-			return toString(hv), nil
-		}
-
-		// Extract png (base64)
-		if pv, ok2 := obj["png"]; ok2 {
-			s := toString(pv)
-			data, err := decodeBase64MaybeDataURI(s)
-			if err != nil {
-				return nil, err
-			}
-			return data, nil
-		}
-	}
-
-	// If response is not JSON, return raw content based on requested format
-	if format == "png" {
-		return raw, nil
-	}
-	return string(raw), nil
-}
-
-func decodeBase64MaybeDataURI(s string) ([]byte, error) {
-	if strings.TrimSpace(s) == "" {
-		return nil, errors.New("empty png data")
-	}
-	if idx := strings.Index(s, ","); idx >= 0 {
-		s = s[idx+1:]
-	}
-	s = strings.ReplaceAll(s, "\n", "")
-	s = strings.ReplaceAll(s, "\r", "")
-	s = strings.ReplaceAll(s, " ", "")
-	b, err := base64.StdEncoding.DecodeString(padBase64(s))
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
-func padBase64(s string) string {
-	switch len(s) % 4 {
-	case 2:
-		return s + "=="
-	case 3:
-		return s + "="
-	default:
-		return s
-	}
+	return &res, nil
 }
 
 func boolToStr(v bool) string {

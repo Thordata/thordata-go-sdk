@@ -60,7 +60,7 @@ func TestUniversalScrapeHTML_Offline(t *testing.T) {
 	if gotBody.Get("js_render") != "True" || gotBody.Get("type") != "html" {
 		t.Fatalf("unexpected payload: %v", gotBody)
 	}
-	if s, ok := out.(string); !ok || !strings.Contains(s, "Hello") {
+	if !strings.Contains(out.HTML, "Hello") {
 		t.Fatalf("unexpected output: %#v", out)
 	}
 }

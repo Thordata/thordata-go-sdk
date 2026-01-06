@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ type ScraperTaskOptions struct {
 	IncludeErrors   bool
 }
 
+// CreateScraperTask returns taskID string
 func (c *Client) CreateScraperTask(ctx context.Context, opt ScraperTaskOptions) (string, error) {
 	if opt.FileName == "" || opt.SpiderID == "" || opt.SpiderName == "" {
 		return "", errors.New("fileName, spiderId, and spiderName are required")
@@ -49,41 +49,16 @@ func (c *Client) CreateScraperTask(ctx context.Context, opt ScraperTaskOptions) 
 	if err != nil {
 		return "", err
 	}
-	// Use BuildBuilderHeaders instead of BuildAuthHeaders
 	for k, v := range BuildBuilderHeaders(c.cfg.ScraperToken, c.cfg.PublicToken, c.cfg.PublicKey) {
 		req.Header.Set(k, v)
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
-	res, err := c.http.Do(req)
+	resp, err := execute[APIResponse[TaskCreateResponse]](c, req)
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
-
-	raw, _ := io.ReadAll(res.Body)
-	parsed, _ := SafeParseJSON(raw)
-
-	obj, ok := parsed.(map[string]any)
-	if !ok {
-		return "", errors.New("invalid response from Scraper Builder API")
-	}
-
-	if cv, ok2 := obj["code"]; ok2 {
-		if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
-			return "", RaiseForCode("Task creation failed", obj, res.StatusCode)
-		}
-	}
-
-	dataObj, _ := obj["data"].(map[string]any)
-	taskID := ""
-	if dataObj != nil {
-		taskID = toString(dataObj["task_id"])
-	}
-	if strings.TrimSpace(taskID) == "" {
-		return "", errors.New("task_id missing in response")
-	}
-	return taskID, nil
+	return resp.Data.TaskId, nil
 }
 
 func (c *Client) GetTaskStatus(ctx context.Context, taskID string) (string, error) {
@@ -106,38 +81,15 @@ func (c *Client) GetTaskStatus(ctx context.Context, taskID string) (string, erro
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
-	res, err := c.http.Do(req)
+	// Status API returns list of statuses in "data"
+	resp, err := execute[APIResponse[[]TaskStatus]](c, req)
 	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-
-	raw, _ := io.ReadAll(res.Body)
-	parsed, _ := SafeParseJSON(raw)
-
-	obj, ok := parsed.(map[string]any)
-	if !ok {
-		return "unknown", nil
+		return "unknown", err
 	}
 
-	if cv, ok2 := obj["code"]; ok2 {
-		if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
-			return "", RaiseForCode("Task status failed", obj, res.StatusCode)
-		}
-	}
-
-	items, _ := obj["data"].([]any)
-	for _, it := range items {
-		m, _ := it.(map[string]any)
-		if m == nil {
-			continue
-		}
-		if toString(m["task_id"]) == taskID {
-			st := toString(m["status"])
-			if st == "" {
-				return "unknown", nil
-			}
-			return st, nil
+	for _, item := range resp.Data {
+		if item.TaskId == taskID {
+			return item.Status, nil
 		}
 	}
 	return "unknown", nil
@@ -169,33 +121,11 @@ func (c *Client) GetTaskResult(ctx context.Context, taskID string, fileType stri
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
-	res, err := c.http.Do(req)
+	resp, err := execute[APIResponse[TaskDownload]](c, req)
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
-
-	raw, _ := io.ReadAll(res.Body)
-	parsed, _ := SafeParseJSON(raw)
-
-	obj, ok := parsed.(map[string]any)
-	if !ok {
-		return "", errors.New("invalid response from task download API")
-	}
-
-	if cv, ok2 := obj["code"]; ok2 {
-		if f, ok3 := cv.(float64); ok3 && int(f) == 200 {
-			dataObj, _ := obj["data"].(map[string]any)
-			if dataObj != nil {
-				dl := toString(dataObj["download"])
-				if dl != "" {
-					return dl, nil
-				}
-			}
-		}
-	}
-
-	return "", RaiseForCode("Get task result failed", obj, res.StatusCode)
+	return resp.Data.Download, nil
 }
 
 func (c *Client) WaitForTask(ctx context.Context, taskID string, pollInterval time.Duration, maxWait time.Duration) (string, error) {
@@ -262,33 +192,9 @@ func (c *Client) CreateVideoTask(ctx context.Context, opt VideoTaskOptions) (str
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
-	res, err := c.http.Do(req)
+	resp, err := execute[APIResponse[TaskCreateResponse]](c, req)
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
-
-	raw, _ := io.ReadAll(res.Body)
-	parsed, _ := SafeParseJSON(raw)
-
-	obj, ok := parsed.(map[string]any)
-	if !ok {
-		return "", errors.New("invalid response from Video Builder API")
-	}
-
-	if cv, ok2 := obj["code"]; ok2 {
-		if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
-			return "", RaiseForCode("Video task creation failed", obj, res.StatusCode)
-		}
-	}
-
-	dataObj, _ := obj["data"].(map[string]any)
-	taskID := ""
-	if dataObj != nil {
-		taskID = toString(dataObj["task_id"])
-	}
-	if strings.TrimSpace(taskID) == "" {
-		return "", errors.New("task_id missing in response")
-	}
-	return taskID, nil
+	return resp.Data.TaskId, nil
 }

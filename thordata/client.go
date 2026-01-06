@@ -2,7 +2,10 @@
 package thordata
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -124,4 +127,55 @@ func getenvDefault(key, def string) string {
 // This is useful if you are creating many ephemeral clients.
 func (c *Client) CloseIdleConnections() {
 	c.http.CloseIdleConnections()
+}
+
+// execute sends the request and unmarshals the response into T.
+// It handles standard Thordata error wrapping ({"code": != 200}).
+func execute[T any](c *Client, req *http.Request) (T, error) {
+	var zero T
+	req.Header.Set("User-Agent", c.cfg.UserAgent)
+
+	res, err := c.http.Do(req)
+	if err != nil {
+		return zero, err
+	}
+	defer res.Body.Close()
+
+	raw, _ := io.ReadAll(res.Body)
+
+	// 1. Check for API error wrapper first (without consuming strict T structure)
+	var meta map[string]any
+	if err := json.Unmarshal(raw, &meta); err == nil {
+		if err := checkAPIError(meta, res.StatusCode); err != nil {
+			return zero, err
+		}
+	} else {
+		// Not JSON? If T is string/[]byte we might allow it, but Thordata APIs usually return JSON.
+		// For HTML scraping, we handle it separately in UniversalScrape.
+		if res.StatusCode < 200 || res.StatusCode >= 300 {
+			return zero, fmt.Errorf("http error %d: %s", res.StatusCode, string(raw))
+		}
+	}
+
+	// 2. Unmarshal into target type
+	var data T
+	if err := json.Unmarshal(raw, &data); err != nil {
+		return zero, fmt.Errorf("failed to decode response: %w (body: %s)", err, string(raw))
+	}
+
+	return data, nil
+}
+
+func checkAPIError(payload map[string]any, httpStatus int) error {
+	apiCode := 0
+	if v, ok := payload["code"]; ok {
+		if f, ok2 := v.(float64); ok2 {
+			apiCode = int(f)
+		}
+	}
+
+	if (apiCode != 0 && apiCode != 200) || (httpStatus < 200 || httpStatus >= 300) {
+		return RaiseForCode("API Error", payload, httpStatus)
+	}
+	return nil
 }

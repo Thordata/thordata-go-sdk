@@ -66,7 +66,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("❌ Failed: %v\n", err)
 	} else {
-		bal := getFloat(stats, "traffic_balance")
+		bal := stats.TrafficBalance
 		fmt.Printf("✅ Stats Retrieved:\n")
 		fmt.Printf("   Balance: %.2f GB\n", bal/(1024*1024*1024))
 	}
@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("❌ Failed: %v\n", err)
 	} else {
-		count := getInt(users, "user_count")
+		count := users.UserCount
 		fmt.Printf("✅ Users Retrieved: %d\n", count)
 	}
 
@@ -91,26 +91,8 @@ func main() {
 		if len(servers) > 0 {
 			// ProxyServer struct is not exported directly from response, it's []any
 			// Manual check
-			s := servers[0].(map[string]any)
-			fmt.Printf("   Server 1: %v:%v\n", s["ip"], s["port"])
+			s := servers[0]
+			fmt.Printf("   Server 1: %v:%v\n", s.IP, s.Port)
 		}
 	}
-}
-
-func getFloat(m map[string]any, key string) float64 {
-	if v, ok := m[key]; ok {
-		if f, ok := v.(float64); ok {
-			return f
-		}
-	}
-	return 0
-}
-
-func getInt(m map[string]any, key string) int {
-	if v, ok := m[key]; ok {
-		if f, ok := v.(float64); ok {
-			return int(f)
-		}
-	}
-	return 0
 }

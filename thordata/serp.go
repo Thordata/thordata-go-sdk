@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -36,7 +35,9 @@ var tbmMap = map[string]string{
 	"vid":      "vid",
 }
 
-func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
+// SerpSearch now returns *SerpResponse (strong type) for JSON.
+// Note: OutputFormat="html" is currently NOT supported in this strongly-typed method.
+func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (*SerpResponse, error) {
 	if strings.TrimSpace(opt.Query) == "" {
 		return nil, errors.New("query is required")
 	}
@@ -50,13 +51,13 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	if out == "" {
 		out = "json"
 	}
+	if out == "html" {
+		return nil, errors.New("OutputFormat=html is not supported in strongly-typed SerpSearch. Use raw HTTP request if needed.")
+	}
 
 	payload := map[string]string{
 		"engine": engine,
 		"json":   "1",
-	}
-	if out == "html" {
-		payload["json"] = "0"
 	}
 
 	if engine == "yandex" {
@@ -121,39 +122,12 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (any, error) {
 	}
 	req.Header.Set("User-Agent", c.cfg.UserAgent)
 
-	res, err := c.http.Do(req)
+	// JSON
+	res, err := execute[SerpResponse](c, req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-
-	raw, _ := io.ReadAll(res.Body)
-
-	// HTML mode keeps a stable return shape
-	if out == "html" {
-		return map[string]any{"html": string(raw)}, nil
-	}
-
-	parsed, _ := SafeParseJSON(raw)
-
-	// API-level code check
-	if obj, ok := parsed.(map[string]any); ok {
-		if cv, ok2 := obj["code"]; ok2 {
-			if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
-				return nil, RaiseForCode("SERP API error", obj, res.StatusCode)
-			}
-		}
-	}
-
-	// HTTP-level error fallback
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		if obj, ok := parsed.(map[string]any); ok {
-			return nil, RaiseForCode("SERP HTTP error", obj, res.StatusCode)
-		}
-		return nil, errors.New("SERP request failed")
-	}
-
-	return parsed, nil
+	return &res, nil
 }
 
 func normalizeEngine(engine string) string {

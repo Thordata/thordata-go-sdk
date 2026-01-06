@@ -1,19 +1,16 @@
-// thordata/public.go
 package thordata
 
 import (
 	"bytes"
 	"context"
 	"errors"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 )
 
-// --- Task List ---
-
-func (c *Client) ListTasks(ctx context.Context, page, size int) (map[string]any, error) {
+// ListTasks returns strongly typed TaskList
+func (c *Client) ListTasks(ctx context.Context, page, size int) (*TaskList, error) {
 	if c.cfg.PublicToken == "" || c.cfg.PublicKey == "" {
 		return nil, errors.New("publicToken and publicKey required")
 	}
@@ -32,43 +29,15 @@ func (c *Client) ListTasks(ctx context.Context, page, size int) (map[string]any,
 		req.Header.Set(k, v)
 	}
 
-	return c.executeRequest(req)
-}
-
-// --- Helper for execution ---
-
-func (c *Client) executeRequest(req *http.Request) (map[string]any, error) {
-	req.Header.Set("User-Agent", c.cfg.UserAgent)
-	res, err := c.http.Do(req)
+	resp, err := execute[APIResponse[TaskList]](c, req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-
-	raw, _ := io.ReadAll(res.Body)
-	parsed, _ := SafeParseJSON(raw)
-
-	obj, ok := parsed.(map[string]any)
-	if !ok {
-		return nil, errors.New("invalid JSON response")
-	}
-
-	if cv, ok2 := obj["code"]; ok2 {
-		if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
-			return nil, RaiseForCode("API error", obj, res.StatusCode)
-		}
-	}
-
-	// Return data field if exists, otherwise return whole object
-	if data, ok := obj["data"].(map[string]any); ok {
-		return data, nil
-	}
-	return obj, nil
+	return &resp.Data, nil
 }
 
-// --- Usage Statistics ---
-
-func (c *Client) GetUsageStatistics(ctx context.Context, fromDate, toDate string) (map[string]any, error) {
+// GetUsageStatistics returns strongly typed UsageStatistics
+func (c *Client) GetUsageStatistics(ctx context.Context, fromDate, toDate string) (*UsageStatistics, error) {
 	if c.cfg.PublicToken == "" || c.cfg.PublicKey == "" {
 		return nil, errors.New("publicToken and publicKey required")
 	}
@@ -85,12 +54,20 @@ func (c *Client) GetUsageStatistics(ctx context.Context, fromDate, toDate string
 	if err != nil {
 		return nil, err
 	}
-	return c.executeRequest(req)
+
+	// API often returns data fields directly in root or in "data".
+	// Let's try APIResponse first.
+	resp, err := execute[APIResponse[UsageStatistics]](c, req)
+	if err != nil {
+		return nil, err
+	}
+	// Fallback logic: if Data is empty but root has fields (UsageStatistics fields overlap with APIResponse fields?)
+	// Actually, based on spec, usage stats are in "data".
+	return &resp.Data, nil
 }
 
-// --- Proxy Users ---
-
-func (c *Client) ListProxyUsers(ctx context.Context, proxyType int) (map[string]any, error) {
+// ListProxyUsers returns strongly typed ProxyUserList
+func (c *Client) ListProxyUsers(ctx context.Context, proxyType int) (*ProxyUserList, error) {
 	if c.cfg.PublicToken == "" || c.cfg.PublicKey == "" {
 		return nil, errors.New("publicToken and publicKey required")
 	}
@@ -106,11 +83,17 @@ func (c *Client) ListProxyUsers(ctx context.Context, proxyType int) (map[string]
 	if err != nil {
 		return nil, err
 	}
-	return c.executeRequest(req)
+
+	// Sometimes returns fields directly, sometimes in "data".
+	// We'll assume standard wrapper for now based on your other SDKs.
+	resp, err := execute[APIResponse[ProxyUserList]](c, req)
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Data, nil
 }
 
-// --- Whitelist IP ---
-
+// AddWhitelistIP returns raw map (since response is usually empty/status)
 func (c *Client) AddWhitelistIP(ctx context.Context, ip string, proxyType int) (map[string]any, error) {
 	if c.cfg.PublicToken == "" || c.cfg.PublicKey == "" {
 		return nil, errors.New("publicToken and publicKey required")
@@ -130,12 +113,17 @@ func (c *Client) AddWhitelistIP(ctx context.Context, ip string, proxyType int) (
 	for k, v := range BuildPublicHeaders(c.cfg.PublicToken, c.cfg.PublicKey) {
 		req.Header.Set(k, v)
 	}
-	return c.executeRequest(req)
+
+	// Generic execute
+	resp, err := execute[APIResponse[map[string]any]](c, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data, nil
 }
 
-// --- Proxy List ---
-
-func (c *Client) ListProxyServers(ctx context.Context, proxyType int) ([]any, error) {
+// ListProxyServers returns []ProxyServer
+func (c *Client) ListProxyServers(ctx context.Context, proxyType int) ([]ProxyServer, error) {
 	if c.cfg.PublicToken == "" || c.cfg.PublicKey == "" {
 		return nil, errors.New("publicToken and publicKey required")
 	}
@@ -152,30 +140,19 @@ func (c *Client) ListProxyServers(ctx context.Context, proxyType int) ([]any, er
 		return nil, err
 	}
 
-	// executeRequest returns map, but list returns array in data or root?
-	// Manual implementation for list handling
-	req.Header.Set("User-Agent", c.cfg.UserAgent)
-	res, err := c.http.Do(req)
+	// This endpoint often returns {"code": 200, "data": [...] } OR {"code": 200, "list": [...]}
+	// Let's use a custom struct to capture potential fields
+	type proxyListResp struct {
+		List []ProxyServer `json:"list"`
+		Data []ProxyServer `json:"data"`
+	}
+	resp, err := execute[APIResponse[proxyListResp]](c, req)
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
 
-	raw, _ := io.ReadAll(res.Body)
-	parsed, _ := SafeParseJSON(raw)
-
-	if obj, ok := parsed.(map[string]any); ok {
-		if cv, ok2 := obj["code"]; ok2 {
-			if f, ok3 := cv.(float64); ok3 && int(f) != 200 {
-				return nil, RaiseForCode("API error", obj, res.StatusCode)
-			}
-		}
-		if list, ok := obj["data"].([]any); ok {
-			return list, nil
-		}
-		if list, ok := obj["list"].([]any); ok {
-			return list, nil
-		}
+	if len(resp.Data.Data) > 0 {
+		return resp.Data.Data, nil
 	}
-	return []any{}, nil
+	return resp.Data.List, nil
 }

@@ -36,7 +36,6 @@ var tbmMap = map[string]string{
 }
 
 // SerpSearch now returns *SerpResponse (strong type) for JSON.
-// Note: OutputFormat="html" is currently NOT supported in this strongly-typed method.
 func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (*SerpResponse, error) {
 	if strings.TrimSpace(opt.Query) == "" {
 		return nil, errors.New("query is required")
@@ -52,7 +51,7 @@ func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (*SerpResponse
 		out = "json"
 	}
 	if out == "html" {
-		return nil, errors.New("OutputFormat=html is not supported in strongly-typed SerpSearch. Use raw HTTP request if needed.")
+		return nil, errors.New("outputFormat=html is not supported in strongly-typed SerpSearch, use raw HTTP request if needed")
 	}
 
 	payload := map[string]string{

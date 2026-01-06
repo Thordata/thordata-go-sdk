@@ -14,12 +14,19 @@ linters:
     - ineffassign
     - unused
     - errcheck
-    - gosimple
     - gosec
     - bodyclose
-    - exportloopref
+    - copyloopvar
 
 linters-settings:
   gosec:
     excludes:
       - G404
+  errcheck:
+    check-blank: false
+    exclude-functions:
+      - (*io.ReadCloser).Close
+      - (*os.File).Close
+      - (io.Closer).Close
+      - (*net/http.Response).Body.Close
+      - http.Response.Body.Close

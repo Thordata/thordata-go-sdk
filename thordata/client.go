@@ -139,7 +139,7 @@ func execute[T any](c *Client, req *http.Request) (T, error) {
 	if err != nil {
 		return zero, err
 	}
-	defer res.Body.Close()
+	defer res.Body.Close() //nolint:errcheck
 
 	raw, _ := io.ReadAll(res.Body)
 

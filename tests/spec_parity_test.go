@@ -33,7 +33,7 @@ func loadSpec(t *testing.T) map[string]any {
 func readSpecFile(t *testing.T, path string) map[string]any {
 	t.Helper()
 
-	b, err := os.ReadFile(path)
+	b, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		t.Fatalf("failed to read spec: %v", err)
 	}

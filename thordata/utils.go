@@ -74,22 +74,3 @@ func SafeParseJSON(data []byte) (any, error) {
 	// Not JSON
 	return string(data), nil
 }
-
-func toString(v any) string {
-	if v == nil {
-		return ""
-	}
-	switch t := v.(type) {
-	case string:
-		return t
-	case []byte:
-		return string(t)
-	default:
-		// Handles numbers (float64 from JSON), bools, etc.
-		s := fmt.Sprint(v)
-		if s == "<nil>" {
-			return ""
-		}
-		return strings.TrimSpace(s)
-	}
-}

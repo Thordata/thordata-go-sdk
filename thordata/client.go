@@ -60,7 +60,7 @@ func NewClient(cfg Config) (*Client, error) {
 		cfg.Timeout = 30 * time.Second
 	}
 	if cfg.UserAgent == "" {
-		cfg.UserAgent = BuildUserAgent("1.0.1")
+		cfg.UserAgent = BuildUserAgent("1.1.0")
 	}
 
 	base := resolveBaseURLs(cfg.BaseURLs)

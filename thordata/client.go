@@ -83,7 +83,7 @@ func NewClient(cfg Config) (*Client, error) {
 	c.usageStatsURL = apiBase + "/account/usage-statistics"
 	c.proxyUsersURL = apiBase + "/proxy-users"
 	c.whitelistURL = "https://api.thordata.com/api/whitelisted-ips"
-	c.proxyListURL = "https://api.thordata.com/api/proxy/proxy-list"
+	c.proxyListURL = "https://openapi.thordata.com/api/proxy/proxy-list"
 	c.proxyExpirationURL = apiBase + "/proxy/expiration-time"
 	c.taskListURL = strings.TrimRight(base.WebScraperAPIBaseURL, "/") + "/tasks-list"
 

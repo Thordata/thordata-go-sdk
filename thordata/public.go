@@ -140,19 +140,10 @@ func (c *Client) ListProxyServers(ctx context.Context, proxyType int) ([]ProxySe
 		return nil, err
 	}
 
-	// This endpoint often returns {"code": 200, "data": [...] } OR {"code": 200, "list": [...]}
-	// Let's use a custom struct to capture potential fields
-	type proxyListResp struct {
-		List []ProxyServer `json:"list"`
-		Data []ProxyServer `json:"data"`
-	}
-	resp, err := execute[APIResponse[proxyListResp]](c, req)
+	resp, err := execute[APIResponse[[]ProxyServer]](c, req)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(resp.Data.Data) > 0 {
-		return resp.Data.Data, nil
-	}
-	return resp.Data.List, nil
+	return resp.Data, nil
 }

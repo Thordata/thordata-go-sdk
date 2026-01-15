@@ -37,6 +37,9 @@ var tbmMap = map[string]string{
 
 // SerpSearch now returns *SerpResponse (strong type) for JSON.
 func (c *Client) SerpSearch(ctx context.Context, opt SerpOptions) (*SerpResponse, error) {
+	if c.cfg.ScraperToken == "" {
+		return nil, errors.New("scraperToken is required for SERP API")
+	}
 	if strings.TrimSpace(opt.Query) == "" {
 		return nil, errors.New("query is required")
 	}

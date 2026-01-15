@@ -3,12 +3,12 @@ package thordata
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -35,6 +35,11 @@ type Client struct {
 	http *http.Client
 	base BaseURLs
 
+	// Transport cache for proxy reuse
+	// Key: "scheme|host|port|username|password"
+	transportCache map[string]http.RoundTripper
+	cacheMu        sync.RWMutex
+
 	serpURL            string
 	scraperBuilderURL  string
 	universalURL       string
@@ -53,9 +58,6 @@ type Client struct {
 }
 
 func NewClient(cfg Config) (*Client, error) {
-	if strings.TrimSpace(cfg.ScraperToken) == "" {
-		return nil, errors.New("scraperToken is required")
-	}
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = 30 * time.Second
 	}
@@ -65,9 +67,10 @@ func NewClient(cfg Config) (*Client, error) {
 
 	base := resolveBaseURLs(cfg.BaseURLs)
 	c := &Client{
-		cfg:  cfg,
-		http: &http.Client{Timeout: cfg.Timeout},
-		base: base,
+		cfg:            cfg,
+		http:           &http.Client{Timeout: cfg.Timeout},
+		base:           base,
+		transportCache: make(map[string]http.RoundTripper),
 	}
 
 	c.serpURL = strings.TrimRight(base.ScraperAPIBaseURL, "/") + "/request"
@@ -127,6 +130,15 @@ func getenvDefault(key, def string) string {
 // This is useful if you are creating many ephemeral clients.
 func (c *Client) CloseIdleConnections() {
 	c.http.CloseIdleConnections()
+
+	// Close idle connections for all cached proxy transports
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+	for _, tr := range c.transportCache {
+		if t, ok := tr.(*http.Transport); ok {
+			t.CloseIdleConnections()
+		}
+	}
 }
 
 // execute sends the request and unmarshals the response into T.

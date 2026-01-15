@@ -26,6 +26,9 @@ type UniversalOptions struct {
 
 // UniversalScrape returns *UniversalResponse
 func (c *Client) UniversalScrape(ctx context.Context, opt UniversalOptions) (*UniversalResponse, error) {
+	if c.cfg.ScraperToken == "" {
+		return nil, errors.New("scraperToken is required for Universal API")
+	}
 	if strings.TrimSpace(opt.URL) == "" {
 		return nil, errors.New("url is required")
 	}

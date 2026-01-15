@@ -21,6 +21,9 @@ type ScraperTaskOptions struct {
 
 // CreateScraperTask returns taskID string
 func (c *Client) CreateScraperTask(ctx context.Context, opt ScraperTaskOptions) (string, error) {
+	if c.cfg.ScraperToken == "" {
+		return "", errors.New("scraperToken is required for Task Builder")
+	}
 	if opt.FileName == "" || opt.SpiderID == "" || opt.SpiderName == "" {
 		return "", errors.New("fileName, spiderId, and spiderName are required")
 	}
@@ -160,6 +163,9 @@ func boolToLower(v bool) string {
 }
 
 func (c *Client) CreateVideoTask(ctx context.Context, opt VideoTaskOptions) (string, error) {
+	if c.cfg.ScraperToken == "" {
+		return "", errors.New("scraperToken is required for Task Builder")
+	}
 	if opt.FileName == "" || opt.SpiderID == "" || opt.SpiderName == "" {
 		return "", errors.New("fileName, spiderId, and spiderName are required")
 	}

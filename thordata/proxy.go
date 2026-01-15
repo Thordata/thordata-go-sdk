@@ -19,6 +19,11 @@ import (
 )
 
 type ProxyProduct string
+type dialerFunc func(ctx context.Context, network, addr string) (net.Conn, error)
+
+func (f dialerFunc) Dial(network, addr string) (net.Conn, error) {
+	return f(context.Background(), network, addr)
+}
 
 const (
 	ProxyResidential ProxyProduct = "residential"
@@ -43,9 +48,6 @@ func (p ProxyProduct) defaultPort() int {
 }
 
 func (p ProxyProduct) defaultHost() string {
-	// NOTE: actual working host often comes from Dashboard endpoint generator:
-	// e.g. vpn9wq0d.pr.thordata.net
-	// We keep historical defaults as fallback only.
 	switch p {
 	case ProxyResidential:
 		return "t.pr.thordata.net"
@@ -63,20 +65,19 @@ func (p ProxyProduct) defaultHost() string {
 type ProxyConfig struct {
 	Product ProxyProduct
 
-	// Gateway credentials (Residential/Datacenter/Mobile):
-	// Username is the "account username" part (without td-customer- prefix)
+	// Gateway credentials
 	Username string
 	Password string
 
-	// Endpoint overrides (prefer Dashboard shard host)
-	Protocol string // http or https (IMPORTANT: many accounts require https)
+	// Endpoint overrides
+	Protocol string
 	Host     string
 	Port     int
 
 	// Whitelist mode (no auth)
 	NoAuth bool
 
-	// Targeting / session options (gateway mode)
+	// Targeting / session options
 	Continent       string
 	Country         string
 	State           string
@@ -152,7 +153,7 @@ func (p *ProxyConfig) BuildGatewayUsername() (string, error) {
 func (p *ProxyConfig) effectiveEndpoint() (scheme, host string, port int) {
 	scheme = strings.ToLower(strings.TrimSpace(p.Protocol))
 	if scheme == "" {
-		scheme = "https" // safe default (matches real-world requirement you observed)
+		scheme = "https" // safe default
 	}
 	if scheme == "socks5" {
 		scheme = "socks5h"
@@ -173,7 +174,7 @@ func (p *ProxyConfig) effectiveAuth(host string) (string, string, error) {
 		return "", "", nil
 	}
 
-	// ISP direct: username/password are direct
+	// ISP direct
 	if p.Product == ProxyISP && !strings.Contains(host, ".pr.thordata.net") {
 		if p.Username == "" || p.Password == "" {
 			return "", "", errors.New("isp proxy requires username/password")
@@ -203,9 +204,6 @@ func (p *ProxyConfig) proxyURLAndAuth() (*url.URL, string, error) {
 		return u, "", nil
 	}
 
-	// ISP static proxies do NOT use td-customer- username format, but your SDK currently
-	// models ISP as "static direct host" with username/password provided by dashboard.
-	// For simplicity here: if product is isp and host is not a gateway host, treat Username as direct login.
 	if p.Product == ProxyISP && !strings.Contains(host, ".pr.thordata.net") {
 		if p.Username == "" || p.Password == "" {
 			return nil, "", errors.New("isp proxy requires username/password")
@@ -218,8 +216,6 @@ func (p *ProxyConfig) proxyURLAndAuth() (*url.URL, string, error) {
 		return nil, "", err
 	}
 	if p.Password == "" && !p.NoAuth {
-		// Some dashboards allow empty password, but generally password is required for user/pass mode.
-		// Keep compatible but explicit.
 		return nil, "", errors.New("proxy password is required (user/pass mode)")
 	}
 
@@ -235,7 +231,7 @@ func DefaultProxyFromEnv() (*ProxyConfig, error) {
 	whitelist := strings.ToLower(strings.TrimSpace(os.Getenv("THORDATA_PROXY_WHITELIST")))
 	if whitelist == "1" || whitelist == "true" || whitelist == "yes" || whitelist == "y" {
 		p := &ProxyConfig{
-			Product: ProxyResidential, // irrelevant in whitelist; keep default port 9999
+			Product: ProxyResidential,
 			NoAuth:  true,
 		}
 		applyEndpointEnvOverrides(p, ProxyResidential)
@@ -273,14 +269,12 @@ func DefaultProxyFromEnv() (*ProxyConfig, error) {
 }
 
 func applyEndpointEnvOverrides(p *ProxyConfig, product ProxyProduct) {
-	prefix := strings.ToUpper(string(product)) // RESIDENTIAL/DATACENTER/MOBILE/ISP
+	prefix := strings.ToUpper(string(product))
 
-	// Per-product overrides first
 	host := os.Getenv("THORDATA_" + prefix + "_PROXY_HOST")
 	portRaw := os.Getenv("THORDATA_" + prefix + "_PROXY_PORT")
 	proto := os.Getenv("THORDATA_" + prefix + "_PROXY_PROTOCOL")
 
-	// Global overrides
 	if host == "" {
 		host = os.Getenv("THORDATA_PROXY_HOST")
 	}
@@ -305,21 +299,20 @@ func applyEndpointEnvOverrides(p *ProxyConfig, product ProxyProduct) {
 }
 
 // ProxyGet sends a GET request through Thordata Proxy Network.
-// If proxy is nil, it tries DefaultProxyFromEnv().
 func (c *Client) ProxyGet(ctx context.Context, targetURL string, proxy *ProxyConfig) (*http.Response, error) {
 	return c.ProxyRequest(ctx, http.MethodGet, targetURL, proxy, nil, nil)
 }
 
-func buildProxyTransport(proxyURL *url.URL, authUser string, authPass string) (*http.Transport, error) {
+func buildProxyTransport(proxyURL *url.URL, authUser string, authPass string) (http.RoundTripper, error) {
 	scheme := strings.ToLower(strings.TrimSpace(proxyURL.Scheme))
 	if scheme == "socks5" {
 		scheme = "socks5h"
 	}
 
-	baseDialer := &net.Dialer{
-		Timeout:   15 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
+	// Use default transport as base for pooling parameters
+	baseTransport := http.DefaultTransport.(*http.Transport).Clone()
+	baseTransport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	baseTransport.ForceAttemptHTTP2 = true
 
 	// SOCKS5/SOCKS5H
 	if strings.HasPrefix(scheme, "socks5") {
@@ -328,38 +321,71 @@ func buildProxyTransport(proxyURL *url.URL, authUser string, authPass string) (*
 			auth = &xproxy.Auth{User: authUser, Password: authPass}
 		}
 
-		d, err := xproxy.SOCKS5("tcp", proxyURL.Host, auth, baseDialer)
+		// Adapt DialContext to Dialer interface
+		var forwardDialer xproxy.Dialer
+		if baseTransport.DialContext != nil {
+			forwardDialer = dialerFunc(baseTransport.DialContext)
+		} else {
+			forwardDialer = &net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
+		}
+
+		d, err := xproxy.SOCKS5("tcp", proxyURL.Host, auth, forwardDialer)
 		if err != nil {
 			return nil, err
 		}
-		ctxDialer, _ := d.(xproxy.ContextDialer)
 
-		tr := &http.Transport{
-			TLSClientConfig:   &tls.Config{MinVersion: tls.VersionTLS12},
-			ForceAttemptHTTP2: true,
-		}
-		tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			if ctxDialer != nil {
+		// Wrap the SOCKS dialer into the HTTP transport
+		baseTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			if ctxDialer, ok := d.(xproxy.ContextDialer); ok {
 				return ctxDialer.DialContext(ctx, network, addr)
 			}
 			return d.Dial(network, addr)
 		}
-		return tr, nil
+		return baseTransport, nil
 	}
 
-	// HTTP/HTTPS proxy (CONNECT)
-	tr := &http.Transport{
-		Proxy:             http.ProxyURL(proxyURL),
-		TLSClientConfig:   &tls.Config{MinVersion: tls.VersionTLS12},
-		DialContext:       baseDialer.DialContext,
-		ForceAttemptHTTP2: true,
-	}
+	// HTTP/HTTPS proxy
+	baseTransport.Proxy = http.ProxyURL(proxyURL)
 
 	if authUser != "" {
 		pa := basicAuthHeader(authUser + ":" + authPass)
-		tr.ProxyConnectHeader = make(http.Header)
-		tr.ProxyConnectHeader.Set("Proxy-Authorization", pa)
+		baseTransport.ProxyConnectHeader = make(http.Header)
+		baseTransport.ProxyConnectHeader.Set("Proxy-Authorization", pa)
 	}
+	return baseTransport, nil
+}
+
+func (c *Client) getCachedTransport(proxyURL *url.URL, authUser, authPass string) (http.RoundTripper, error) {
+	// Construct a unique cache key for this proxy configuration
+	cacheKey := fmt.Sprintf("%s|%s|%s", proxyURL.String(), authUser, authPass)
+
+	// Check cache (Read lock)
+	c.cacheMu.RLock()
+	if tr, ok := c.transportCache[cacheKey]; ok {
+		c.cacheMu.RUnlock()
+		return tr, nil
+	}
+	c.cacheMu.RUnlock()
+
+	// Cache miss, create new transport
+	tr, err := buildProxyTransport(proxyURL, authUser, authPass)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save to cache (Write lock)
+	c.cacheMu.Lock()
+	// Double check in case another goroutine created it
+	if existing, ok := c.transportCache[cacheKey]; ok {
+		c.cacheMu.Unlock()
+		return existing, nil
+	}
+	c.transportCache[cacheKey] = tr
+	c.cacheMu.Unlock()
+
 	return tr, nil
 }
 
@@ -384,14 +410,9 @@ func (c *Client) ProxyRequest(
 	}
 
 	if proxy == nil {
-		return nil, errors.New(
-			"proxy credentials are missing" +
-				"Set THORDATA_RESIDENTIAL_USERNAME/THORDATA_RESIDENTIAL_PASSWORD (or DATACENTER/MOBILE) " +
-				"and THORDATA_PROXY_HOST/PORT/PROTOCOL from Dashboard endpoint generator",
-		)
+		return nil, errors.New("proxy credentials are missing")
 	}
 
-	// We keep proxyURLAndAuth for endpoint building, but do NOT parse userPass for socks.
 	proxyURL, _, err := proxy.proxyURLAndAuth()
 	if err != nil {
 		return nil, err
@@ -404,8 +425,8 @@ func (c *Client) ProxyRequest(
 		return nil, err
 	}
 
-	// Build transport (http/https/socks5h)
-	tr, err := buildProxyTransport(proxyURL, authUser, authPass)
+	// Use cached transport for connection reuse
+	tr, err := c.getCachedTransport(proxyURL, authUser, authPass)
 	if err != nil {
 		return nil, err
 	}
@@ -420,14 +441,19 @@ func (c *Client) ProxyRequest(
 		req.Header.Set(k, v)
 	}
 
-	// Only set Proxy-Authorization header for HTTP/HTTPS proxies (harmless otherwise, but keep clean)
+	// Set Proxy-Authorization header for HTTP/HTTPS proxies if not handled by transport (just in case)
 	scheme := strings.ToLower(strings.TrimSpace(proxyURL.Scheme))
-	if scheme == "http" || scheme == "https" {
-		if authUser != "" {
+	if (scheme == "http" || scheme == "https") && authUser != "" {
+		// Note: Transport handles CONNECT auth, but for plain HTTP proxy requests this might be needed.
+		// However, buildProxyTransport already sets ProxyConnectHeader.
+		// For standard http.Client with ProxyURL, Basic Auth in URL is usually handled.
+		// We explicitly set it in transport, so we might not need it here, but keeping it is safe.
+		if req.Header.Get("Proxy-Authorization") == "" {
 			req.Header.Set("Proxy-Authorization", basicAuthHeader(authUser+":"+authPass))
 		}
 	}
 
+	// Reuse the transport!
 	client := &http.Client{
 		Timeout:   c.cfg.Timeout,
 		Transport: tr,

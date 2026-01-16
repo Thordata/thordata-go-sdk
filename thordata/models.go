@@ -1,6 +1,8 @@
 // thordata/models.go
 package thordata
 
+import "time"
+
 // --- Common ---
 
 // APIResponse is the standard JSON wrapper {"code":..., "msg":..., "data":...}
@@ -146,4 +148,14 @@ type VideoTaskOptions struct {
 	Parameters     map[string]any
 	CommonSettings CommonSettings
 	IncludeErrors  bool
+}
+
+// RunTaskConfig configures the polling behavior for RunTask.
+type RunTaskConfig struct {
+	// MaxWait is the maximum time to wait for task completion. Default: 10 minutes.
+	MaxWait time.Duration
+	// InitialPollInterval is the starting interval between status checks. Default: 2 seconds.
+	InitialPollInterval time.Duration
+	// MaxPollInterval is the cap for the exponential backoff. Default: 10 seconds.
+	MaxPollInterval time.Duration
 }

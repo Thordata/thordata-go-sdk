@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -203,4 +204,76 @@ func (c *Client) CreateVideoTask(ctx context.Context, opt VideoTaskOptions) (str
 		return "", err
 	}
 	return resp.Data.TaskId, nil
+}
+
+// RunTask creates a task and polls until it completes or times out.
+// It combines CreateScraperTask, WaitForTask (with custom backoff), and GetTaskResult.
+func (c *Client) RunTask(ctx context.Context, taskOpt ScraperTaskOptions, runOpt *RunTaskConfig) (string, error) {
+	// 1. Set defaults
+	if runOpt == nil {
+		runOpt = &RunTaskConfig{}
+	}
+	maxWait := runOpt.MaxWait
+	if maxWait == 0 {
+		maxWait = 10 * time.Minute
+	}
+	pollInterval := runOpt.InitialPollInterval
+	if pollInterval == 0 {
+		pollInterval = 2 * time.Second
+	}
+	maxPoll := runOpt.MaxPollInterval
+	if maxPoll == 0 {
+		maxPoll = 10 * time.Second
+	}
+
+	// 2. Create Task
+	taskID, err := c.CreateScraperTask(ctx, taskOpt)
+	if err != nil {
+		return "", fmt.Errorf("failed to create task: %w", err)
+	}
+
+	// 3. Poll with backoff
+	deadline := time.Now().Add(maxWait)
+
+	for {
+		// Check context cancellation or timeout
+		if time.Now().After(deadline) {
+			return "", fmt.Errorf("task %s timed out after %v", taskID, maxWait)
+		}
+		if ctx.Err() != nil {
+			return "", ctx.Err()
+		}
+
+		// Check status
+		status, err := c.GetTaskStatus(ctx, taskID)
+		if err != nil {
+			// Optional: Decide if we want to retry on network error during poll.
+			// For now, fail fast to match other SDKs.
+			return "", fmt.Errorf("failed to check status for %s: %w", taskID, err)
+		}
+
+		statusLower := strings.ToLower(status)
+
+		// Success
+		if statusLower == "ready" || statusLower == "success" || statusLower == "finished" {
+			return c.GetTaskResult(ctx, taskID, "json")
+		}
+
+		// Failure
+		if statusLower == "failed" || statusLower == "error" || statusLower == "cancelled" {
+			return "", fmt.Errorf("task %s failed with status: %s", taskID, status)
+		}
+
+		// Wait before next poll
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(pollInterval):
+			// Increase interval (exponential backoff)
+			pollInterval = time.Duration(float64(pollInterval) * 1.5)
+			if pollInterval > maxPoll {
+				pollInterval = maxPoll
+			}
+		}
+	}
 }

@@ -153,7 +153,10 @@ func execute[T any](c *Client, req *http.Request) (T, error) {
 	}
 	defer res.Body.Close() //nolint:errcheck
 
-	raw, _ := io.ReadAll(res.Body)
+	raw, err := io.ReadAll(res.Body)
+	if err != nil {
+		return zero, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	// 1. Check for API error wrapper first (without consuming strict T structure)
 	var meta map[string]any

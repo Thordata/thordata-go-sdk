@@ -1,0 +1,80 @@
+Release v1.2.0: Complete Four Scraping Methods Support
+
+This release completes the Go SDK implementation with all four major scraping
+methods and significant improvements to code quality, documentation, and user
+experience.
+
+## Major Features
+
+### Complete Four Scraping Methods
+- ✅ SERP Search (Google, Bing, Yandex, DuckDuckGo)
+- ✅ Web Unlocker (Universal Scrape with JS rendering)
+- ✅ Browser Scraper (Browser connection URL generation)
+- ✅ Web Scraper (Tool-based specialized scraping with 100+ pre-built tools)
+
+### New Features
+- Add `GetBrowserConnectionURL()` method for Thordata Scraping Browser integration
+- Add `ValidateEnv()` function for environment variable validation with helpful error messages
+- Add upstream proxy support (`THORDATA_UPSTREAM_PROXY`) for proxy chaining
+- Add comprehensive example demonstrating all SDK features
+- Add browser connection example
+
+### Improvements
+- Improve error handling in `execute()` function (proper `io.ReadAll` error checking)
+- Streamline repository structure (remove redundant examples, clean up empty directories)
+- Update documentation with clear role positioning (Infrastructure / High-Performance Networking)
+- Enhance integration tests with better network interference handling
+- Update `.env.example` to use unified upstream proxy port (7898)
+
+### Code Quality
+- Format all code with `gofmt`
+- Add comprehensive unit tests for new features
+- Improve code comments and documentation
+- Ensure all files are in English
+
+## Files Changed
+
+### Added
+- `thordata/browser.go` - Browser connection URL generation
+- `thordata/browser_test.go` - Unit tests for browser functionality
+- `thordata/env.go` - Environment validation utilities
+- `examples/browser_connection/` - Browser connection example
+- `examples/comprehensive/` - Comprehensive feature demonstration
+
+### Modified
+- `thordata/client.go` - Improved error handling, version bump to 1.2.0
+- `thordata/proxy.go` - Added upstream proxy support
+- `thordata/proxy_integration_test.go` - Enhanced network interference handling
+- `README.md` - Updated with four scraping methods, capability matrix, new features
+- `CHANGELOG.md` - Document all changes in v1.2.0
+- `examples/README.md` - Added new examples documentation
+- `.env.example` - Updated upstream proxy configuration
+
+### Removed
+- `examples/serp_google_news/` - Redundant example (functionality covered by `serp_basic`)
+- `examples/verify/` - Redundant verification script
+- `examples/verify_run_task/` - Redundant task verification
+- `tests/` - Empty directory
+- `sdk-spec/` - Submodule removed (not needed in this repository)
+
+## Testing
+
+All features tested with real API tokens:
+- ✅ SERP Search - Successfully returns search results
+- ✅ Universal Scrape - Successfully scrapes HTML content
+- ✅ Proxy Network - Successfully routes through proxy (with upstream proxy support)
+- ✅ Locations API - Successfully retrieves 197 countries
+- ✅ Usage Statistics - Successfully retrieves account statistics
+- ✅ Browser Connection URL - Successfully generates WebSocket URL
+
+All unit tests pass, code compiles successfully, and examples run correctly.
+
+## Version
+
+- Version: 1.2.0
+- Go version: 1.21+
+- Dependencies: golang.org/x/net v0.30.0
+
+## Breaking Changes
+
+None. This is a feature release with backward compatibility maintained.

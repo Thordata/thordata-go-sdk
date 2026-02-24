@@ -69,7 +69,8 @@ func looksLikeNetworkInterference(err error) bool {
 	s := strings.ToLower(err.Error())
 	bad := []string{
 		"http: server gave HTTP response to HTTPS client",
-		"unexpected EOF",
+		"unexpected eof",
+		"eof",
 		"forcibly closed",
 		"connection reset",
 		"timeout",

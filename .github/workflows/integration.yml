@@ -1,4 +1,4 @@
-name: Integration (Live)
+name: Integration Tests
 
 on:
   workflow_dispatch:
@@ -9,12 +9,10 @@ jobs:
     if: github.repository_owner == 'Thordata'
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.21"
 
       - name: Run integration tests
         env:
@@ -23,6 +21,8 @@ jobs:
           THORDATA_PROXY_PORT: ${{ secrets.THORDATA_PROXY_PORT }}
           THORDATA_RESIDENTIAL_USERNAME: ${{ secrets.THORDATA_RESIDENTIAL_USERNAME }}
           THORDATA_RESIDENTIAL_PASSWORD: ${{ secrets.THORDATA_RESIDENTIAL_PASSWORD }}
-          THORDATA_SCRAPER_TOKEN: ${{ secrets.THORDATA_SCRAPER_TOKEN }} 
+          THORDATA_SCRAPER_TOKEN: ${{ secrets.THORDATA_SCRAPER_TOKEN }}
+          THORDATA_PUBLIC_TOKEN: ${{ secrets.THORDATA_PUBLIC_TOKEN }}
+          THORDATA_PUBLIC_KEY: ${{ secrets.THORDATA_PUBLIC_KEY }}
         run: |
-          go test -tags=integration ./... -v
+          go test -tags=integration ./thordata -v

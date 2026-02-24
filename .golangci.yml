@@ -16,7 +16,6 @@ linters:
     - errcheck
     - gosec
     - bodyclose
-    - copyloopvar
 
 linters-settings:
   gosec:

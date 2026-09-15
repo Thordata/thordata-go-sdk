@@ -4,12 +4,11 @@
 
 <img src="https://img.shields.io/badge/Thordata-AI%20Infrastructure-blue?style=for-the-badge" alt="Thordata Logo">
 
-**The Official Go Client for Thordata APIs**
+**The official Go SDK for Thordata's proxy and web data services**
 
-*Infrastructure • High-Performance Networking • Connection Pooling*
+*Proxy Network • SERP API • Web Unlocker • Web Scraper Tasks*
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/Thordata/thordata-go-sdk.svg)](https://pkg.go.dev/github.com/Thordata/thordata-go-sdk)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Thordata/thordata-go-sdk)](https://goreportcard.com/report/github.com/Thordata/thordata-go-sdk)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 </div>
@@ -317,6 +316,15 @@ See [`examples/`](examples/) directory for complete working examples:
 
 ---
 
+## Thordata Resources
+
+- [Thordata homepage](https://www.thordata.com/?ls=github&lk=thordata)
+- [Thordata documentation](https://doc.thordata.com)
+- [Residential Proxies](https://www.thordata.com/products/residential-proxies)
+- [Web Scraper API](https://www.thordata.com/products/web-scraper-api)
+- [Thordata DataMall](https://datamall.thordata.com/)
+- [Contact the Thordata team](https://www.thordata.com/contact-us)
+  
 ## 📄 License
 
 MIT License. See [LICENSE](LICENSE) for details.

@@ -13,9 +13,9 @@
 
 </div>
 
-> **Maintenance notice:** This repository contains the established Go SDK implementation.
-> For new Go projects, use the [next-generation Thordata Go SDK](https://github.com/Thordata/thordata-go).
-> Existing users can continue using this repository and its current module.
+> **Deprecated:** This repository is no longer the primary Thordata Go SDK and will not receive new feature development.
+> For all new and future Go projects, use the [next-generation Thordata Go SDK](https://github.com/Thordata/thordata-go).
+> This repository is retained for historical reference only. Do not start new integrations with this SDK.
 
 ---
 

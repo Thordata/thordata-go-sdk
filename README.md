@@ -13,6 +13,10 @@
 
 </div>
 
+> **Maintenance notice:** This repository contains the established Go SDK implementation.
+> For new Go projects, use the [next-generation Thordata Go SDK](https://github.com/Thordata/thordata-go).
+> Existing users can continue using this repository and its current module.
+
 ---
 
 ## 📖 Introduction
